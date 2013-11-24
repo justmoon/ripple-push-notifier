@@ -8,9 +8,10 @@ var express = require('express')
 , path = require('path')
 , googleapis = require('googleapis')
 , OAuth2Client = googleapis.OAuth2Client
-, config = require('./config.json');
-
-var oauth2Client = new OAuth2Client(config.CLIENT_ID, config.CLIENT_SECRET, config.REDIRECT_URL);
+, sqlite = require('sqlite3').verbose()
+, ripple = require('ripple-lib')
+, config = require('./config.json')
+, Notifier = require('./notifier').Notifier;
 
 var app = express();
 
@@ -21,9 +22,29 @@ app.set('view engine', 'jade');
 app.use(express.favicon());
 app.use(express.logger('dev'));
 app.use(express.bodyParser());
+app.use(express.cookieParser());
 app.use(express.methodOverride());
 app.use(app.router);
 app.use(express.static(path.join(__dirname, 'public')));
+
+var db = new sqlite.Database(path.resolve(__dirname, 'data.db'));
+db.serialize();
+
+db.run("CREATE TABLE IF NOT EXISTS tokens (token TEXT, ripple_address TEXT)");
+
+var notifier = new Notifier();
+
+db.each("SELECT token, ripple_address AS address FROM tokens", function(err, row) {
+  if (err) {
+    failure(err);
+    return;
+  }
+
+  if (row.address) {
+    console.log("Resubscribing "+row.address+" => "+row.token);
+    notifier.subscribe(row.address, row.token);
+  }
+});
 
 // development only
 if ('development' == app.get('env')) {
@@ -32,102 +53,71 @@ if ('development' == app.get('env')) {
 
 var success = function(data) { console.log('success',data); };
 var failure = function(data) { console.log('failure',data); };
-var gotToken = function () {
-    googleapis
-    .discover('mirror', 'v1')
-    .execute(function(err, client) {
-        if (!!err){
-            failure();
-            return;
-        }
-        console.log('mirror client',client);
-        listTimeline(client, failure, success);
-        insertHello(client, failure, success);
-        insertContact(client, failure, success);
-    });
-};
-
-// send a simple 'hello world' timeline card with a delete option
-var insertHello = function(client, errorCallback, successCallback){
-    client
-    .mirror.timeline.insert(
-        {
-            "text": "Hello world",
-            "menuItems": [{"action": "DELETE"}]
-        }
-    )
-    .withAuthClient(oauth2Client)
-    .execute(function(err, data){
-        if (!!err)
-            errorCallback(err);
-        else
-            successCallback(data);
-    });
-};
-var insertContact = function(client, errorCallback, successCallback){
-    client
-    .mirror.contacts.insert(
-        {
-            "id": "harold",
-            "displayName": "Harold Penguin",
-            "iconUrl": "https://developers.google.com/glass/images/harold.jpg",
-            "priority": 7,
-            "acceptCommands": [
-                {"type": "POST_AN_UPDATE"},
-                {"type": "TAKE_A_NOTE"}
-            ]
-        }
-    )
-    .withAuthClient(oauth2Client)
-    .execute(function(err, data){
-        if (!!err)
-            errorCallback(err);
-        else
-            successCallback(data);
-    });
-};
-var listTimeline = function(client, errorCallback, successCallback){
-    client
-    .mirror.timeline.list()
-    .withAuthClient(oauth2Client)
-    .execute(function(err, data){
-        if (!!err)
-            errorCallback(err);
-        else
-            successCallback(data);
-    });
-};
-var grabToken = function (code, errorCallback, successCallback){
-    oauth2Client.getToken(code, function(err, tokens){
-        if (!!err){
-            errorCallback(err);
-        } else {
-            console.log('tokens',tokens);
-            oauth2Client.credentials = tokens;
-            successCallback();
-        }
-    });
-};
 
 app.get('/', function(req,res){
-    if (!oauth2Client.credentials){
-        // generates a url that allows offline access and asks permissions
-        // for Mirror API scope.
-        var url = oauth2Client.generateAuthUrl({
-            access_type: 'offline',
-            scope: 'https://www.googleapis.com/auth/glass.timeline'
-        });
-        res.redirect(url);
-    } else {
-        gotToken();
-    }
-    res.render('index', { title: 'Glass Mirror API with Node' });
-    res.end();
+    db.get('SELECT token, ripple_address AS address FROM tokens WHERE token = ?',
+           req.cookies.token,
+           function (err, row) {
+             if (err) console.error(err);
 
+             var address = row ? row.address : '';
+             res.render('index', {
+               title: 'Ripple Notifier for Google Glass',
+               token: row ? req.cookies.token : false,
+               address: address
+             });
+             res.end();
+           });
 });
+
+app.get('/signup', function(req, res) {
+    var oauth2Client = new OAuth2Client(config.CLIENT_ID, config.CLIENT_SECRET, config.REDIRECT_URL);
+    // generates a url that allows offline access and asks permissions
+    // for Mirror API scope.
+    var url = oauth2Client.generateAuthUrl({
+        access_type: 'offline',
+        scope: 'https://www.googleapis.com/auth/glass.timeline'
+    });
+    res.redirect(url);
+});
+
+app.post('/settings/address', function(req, res) {
+    var address = ripple.UInt160.from_json(req.body.address);
+    if (!address.is_valid()) {
+      throw new Error("Invalid address!");
+    }
+    address = address.to_json();
+    var token = req.cookies.token;
+
+    db.get('SELECT token, ripple_address AS address FROM tokens WHERE token = ?',
+           token,
+           function (err, row) {
+             if (!row) {
+               res.send(500, {error: "Unknown token"});
+             } else {
+               notifier.unsubscribe(row.address, token);
+               notifier.subscribe(address, token);
+               db.run("UPDATE tokens SET ripple_address = ? WHERE token = ?",
+                      address, token);
+               res.json({success: true});
+             }
+           });
+});
+
 app.get('/oauth2callback', function(req, res){
-    // if we're able to grab the token, redirect the user back to the main page
-    grabToken(req.query.code, failure, function(){ res.redirect('/'); });
+    var oauth2Client = new OAuth2Client(config.CLIENT_ID, config.CLIENT_SECRET, config.REDIRECT_URL);
+    oauth2Client.getToken(req.query.code, function(err, tokens){
+        if (!!err){
+            failure(err);
+        } else {
+            console.log('tokens', tokens);
+            var stmt = db.prepare("INSERT INTO tokens (token, ripple_address) VALUES (?, ?)");
+            stmt.run(tokens.access_token, '');
+            stmt.finalize();
+            res.cookie('token', tokens.access_token);
+            res.redirect("/");
+        }
+    });
 });
 
 

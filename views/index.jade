@@ -1,5 +1,26 @@
 extends layout
 
 block content
-  h1= title
-  p Welcome to #{title}
+  .jumbotron
+    h1 Ripple&nbsp;Notifier&#32;
+      small for&nbsp;Google&nbsp;Glass
+    p Connect Ripple to your Google Glass and get live notifications about incoming payments or trades.
+    hr
+  if !token
+    .panel.panel-default
+      .panel-heading
+        .panel-title Get started
+      .panel-body
+        button#auth_btn.btn.btn-default(type="button") Authenticate with Google
+  else
+    .panel.panel-default
+      .panel-heading
+        .panel-title Get started
+      .panel-body
+        form#settings_form(role="form")
+          .form-group
+            label(for="address_input") Ripple address
+            input.field-address.form-control(type="text", placeholder="e.g. rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh", value= address)
+          button.btn.btn-primary(type="submit") Save
+  script(src='/scripts/jquery.min.js')
+  script(src='/scripts/index.js')

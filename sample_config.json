@@ -7,5 +7,10 @@
 {
     "CLIENT_ID" : "YOUR CLIENT ID",
     "CLIENT_SECRET" : "YOUR CLIENT SECRET",
-    "REDIRECT_URL" : "http://example.com/oauth2callback"
+    "REDIRECT_URL" : "http://example.com/oauth2callback",
+    "RIPPLE_REMOTES" : [{
+      host:    's1.ripple.com',
+      port:    443,
+      secure:  true
+    }]
 }
