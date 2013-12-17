@@ -1,15 +1,7 @@
-$('#auth_btn').click(function (e) {
-  window.location.href = '/signup';
-});
-
 $('#settings_form').submit(function (e) {
   e.preventDefault();
 
-  var address = $('.field-address').val();
+  var pushover_key = $('#pushover_key_input').val();
 
-  $.post('/settings/address', {
-    address: address
-  }, function () {
-    alert('submitted');
-  });
+  window.location.href = "/key/" + pushover_key;
 });

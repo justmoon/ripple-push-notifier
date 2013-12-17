@@ -1,0 +1,42 @@
+extends layout
+
+block content
+  .navbar.navbar-default
+    .navbar-header
+      button.navbar-toggle(type='button', data-toggle='collapse', data-target='#bs-example-navbar-collapse-1')
+        span.sr-only Toggle navigation
+        span.icon-bar
+        span.icon-bar
+        span.icon-bar
+      a.navbar-brand(href="#") Ripple Notifier
+    .collapse.navbar-collapse
+      ul.nav.navbar-nav
+        li
+          a(href='/') Home
+        li.active
+          a(href='#') Manage
+      ul.nav.navbar-nav.navbar-right
+        li
+          a(href='https://ripple.com') Ripple.com
+  .panel.panel-default
+    .panel-heading
+      .panel-title Create subscription
+    .panel-body
+      form#create_form(role="form")
+        input#pushover_key_input(type="hidden", value=pushover_key)
+        .form-group
+          label(for="ripple_address_input") Ripple address
+          input#ripple_address_input.field-address.form-control(type="text", name="ripple_address", placeholder="e.g. rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh", value= ripple_address)
+        button.btn.btn-primary(type="submit") Subscribe
+  .panel.panel-default
+    .panel-heading
+      .panel-title Your subscriptions
+    .panel-body
+      for address in addresses
+        p= address
+          | &nbsp;
+          a.unsubscribe(href="#", data-ripple-address=address) unsubscribe
+      else
+        p No subscriptions yet
+  script(src='/scripts/jquery.min.js')
+  script(src='/scripts/manage.js')

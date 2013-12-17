@@ -1,16 +1,12 @@
 /**
 * Move this file to config.json, and fill in the values with your own.
-* You'll need to register your app with Google, in their developer 
-* console, and enable Mirror API access. You'll also need to run this
-* from a publicly accesible address.
+* You'll need to register your app with Pushover and get an app token.
 */
 {
-    "CLIENT_ID" : "YOUR CLIENT ID",
-    "CLIENT_SECRET" : "YOUR CLIENT SECRET",
-    "REDIRECT_URL" : "http://example.com/oauth2callback",
-    "RIPPLE_REMOTES" : [{
-      host:    's1.ripple.com',
-      port:    443,
-      secure:  true
-    }]
+  "RIPPLE_REMOTES" : [{
+    host:    's1.ripple.com',
+    port:    443,
+    secure:  true
+  }],
+  "PUSHOVER_TOKEN" : "KzGDORePKggMaC0QOYAMyEEuzJnyUi"
 }

@@ -10,6 +10,8 @@
     "googleapis": "0.4.2",
     "jade": "*",
     "sqlite3": "~2.1.19",
-    "ripple-lib": "~0.7.29"
+    "ripple-lib": "~0.7.29",
+    "pushover.net": "0.0.6",
+    "request": "~2.30.0"
   }
 }

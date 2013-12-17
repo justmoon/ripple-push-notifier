@@ -1,26 +1,34 @@
 extends layout
 
 block content
+  .navbar.navbar-default
+    .navbar-header
+      button.navbar-toggle(type='button', data-toggle='collapse', data-target='#bs-example-navbar-collapse-1')
+        span.sr-only Toggle navigation
+        span.icon-bar
+        span.icon-bar
+        span.icon-bar
+      a.navbar-brand(href="#") Ripple Notifier
+    .collapse.navbar-collapse
+      ul.nav.navbar-nav
+        li.active
+          a(href='/') Home
+      ul.nav.navbar-nav.navbar-right
+        li
+          a(href='https://ripple.com') Ripple.com
   .jumbotron
     h1 Ripple&nbsp;Notifier&#32;
-      small for&nbsp;Google&nbsp;Glass
-    p Connect Ripple to your Google Glass and get live notifications about incoming payments or trades.
-    hr
-  if !token
-    .panel.panel-default
-      .panel-heading
-        .panel-title Get started
-      .panel-body
-        button#auth_btn.btn.btn-default(type="button") Authenticate with Google
-  else
-    .panel.panel-default
-      .panel-heading
-        .panel-title Get started
-      .panel-body
-        form#settings_form(role="form")
-          .form-group
-            label(for="address_input") Ripple address
-            input.field-address.form-control(type="text", placeholder="e.g. rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh", value= address)
-          button.btn.btn-primary(type="submit") Save
+      small for&nbsp;Pushover
+    p Connect Ripple to the Pushover app on iOS or Android and get live notifications about incoming payments or trades.
+  hr
+  .panel.panel-default
+    .panel-heading
+      .panel-title Get started
+    .panel-body
+      form#settings_form(role="form")
+        .form-group
+          label(for="pushover_key_input") Pushover user key
+          input#pushover_key_input.field-address.form-control(type="text", name="pushover_key", placeholder="e.g. uQiRzpo4DXghDmr9QzzfQu27cmVRsG", value= pushover_key)
+        button.btn.btn-primary(type="submit") Manage
   script(src='/scripts/jquery.min.js')
   script(src='/scripts/index.js')

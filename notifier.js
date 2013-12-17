@@ -1,7 +1,6 @@
-var googleapis = require('googleapis'),
-    OAuth2Client = googleapis.OAuth2Client,
-    ripple = require('ripple-lib'),
-    config = require('./config.json');
+var ripple = require('ripple-lib'),
+    config = require('./config.json'),
+    pushover = require('pushover.net');
 
 var Notifier = function () {
   this.remote = new ripple.Remote({
@@ -29,76 +28,72 @@ Notifier.prototype.handleTransaction = function (msg) {
   var _this = this;
   msg.mmeta.getAffectedAccounts().forEach(function(account) {
     if (_this.subscriptions[account]) {
-      Object.keys(_this.subscriptions[account]).forEach(function (token) {
-        _this.notifyTransaction(token, account, msg);
+      Object.keys(_this.subscriptions[account]).forEach(function (key) {
+        _this.notifyTransaction(key, account, msg);
       });
     }
   });
 };
 
-Notifier.prototype.subscribe = function (address, token) {
+Notifier.prototype.subscribe = function (address, key) {
   if (!this.subscriptions[address]) {
     this.subscriptions[address] = {};
   }
 
-  this.subscriptions[address][token] = true;
+  this.subscriptions[address][key] = true;
 };
 
-Notifier.prototype.unsubscribe = function (address, token) {
+Notifier.prototype.unsubscribe = function (address, key) {
   if (!this.subscriptions[address]) return;
 
-  delete this.subscriptions[address][token];
+  delete this.subscriptions[address][key];
 };
 
-Notifier.prototype.notifyTransaction = function (token, address, msg) {
+Notifier.prototype.notifyTransaction = function (key, address, msg) {
   console.log(msg);
   // Ignore unsuccessful transactions
   if (msg.engine_result !== 'tesSUCCESS') {
     return;
   }
 
-  var item;
+  var item, amount;
   // Received payment
   if (msg.transaction.TransactionType === 'Payment' &&
       msg.transaction.Destination === address) {
-    var amount = ripple.Amount.from_json(msg.transaction.Amount);
+    amount = ripple.Amount.from_json(msg.transaction.Amount);
     item = {
-      "text": "You received "+amount.to_human()+" "+amount.currency().to_json()
+      "title": "Incoming payment",
+      "message": "You received "+amount.to_human()+" "+amount.currency().to_json(),
+      "sound": "cashregister"
+    };
+  } else if (msg.transaction.TransactionType === 'Payment' &&
+             msg.transaction.Account === address) {
+    amount = ripple.Amount.from_json(msg.transaction.Amount);
+    item = {
+      "title": "Outgoing payment",
+      "message": "You sent "+amount.to_human()+" "+amount.currency().to_json(),
+      "sound": "cashregister"
     };
   }
 
   if (item) {
-    item.menuItems =  [{"action": "DELETE"}];
-    this.notifyTimelineItem(token, item);
+    item.url = "https://ripple.com/graph/#"+msg.transaction.hash;
+    this.notifyTimelineItem(key, item);
   }
 };
 
-Notifier.prototype.notifyTimelineItem = function (token, item) {
-  var oauth2Client = new OAuth2Client(config.CLIENT_ID, config.CLIENT_SECRET, config.REDIRECT_URL);
-  oauth2Client.credentials = {
-    token_type: "Bearer",
-    access_token: token
-  };
+Notifier.prototype.notifyTimelineItem = function (key, item) {
+  item.token = config.PUSHOVER_TOKEN;
+  item.user = key;
 
-  googleapis
-    .discover('mirror', 'v1')
-    .execute(function(err, client) {
-      if (!!err){
-        console.error(err);
-        return;
-      }
-
-      client
-        .mirror.timeline.insert(item)
-        .withAuthClient(oauth2Client)
-        .execute(function(err, data) {
-          if (!!err){
-            console.error(err);
-            return;
-          }
-          console.log("Deployed notification: "+item.text);
-        });
-    });
+  console.log(item);
+  pushover(item, function(err, ok) {
+    if (err) {
+      console.error(err);
+    } else {
+      console.log("Pushed message to "+key);
+    }
+  });
 };
 
 exports.Notifier = Notifier;
