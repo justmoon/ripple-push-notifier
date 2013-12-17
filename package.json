@@ -7,7 +7,6 @@
   },
   "dependencies": {
     "express": "3.3.4",
-    "googleapis": "0.4.2",
     "jade": "*",
     "sqlite3": "~2.1.19",
     "ripple-lib": "~0.7.29",
