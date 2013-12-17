@@ -1,12 +1,8 @@
-/**
-* Move this file to config.json, and fill in the values with your own.
-* You'll need to register your app with Pushover and get an app token.
-*/
 {
   "RIPPLE_REMOTES" : [{
-    host:    's1.ripple.com',
-    port:    443,
-    secure:  true
+    "host":    "s1.ripple.com",
+    "port":    443,
+    "secure":  true
   }],
   "PUSHOVER_TOKEN" : "KzGDORePKggMaC0QOYAMyEEuzJnyUi"
 }
