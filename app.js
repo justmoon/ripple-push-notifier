@@ -53,17 +53,10 @@ var success = function(data) { console.log('success',data); };
 var failure = function(data) { console.log('failure',data); };
 
 app.get('/', function(req,res){
-  db.get('SELECT token, ripple_address AS address FROM tokens WHERE token = ?',
-         req.cookies.token,
-         function (err, row) {
-           if (err) console.error(err);
-
-           var address = row ? row.address : '';
-           res.render('index', {
-             title: 'Ripple Notifier'
-           });
-           res.end();
-         });
+  res.render('index', {
+    title: 'Ripple Notifier'
+  });
+  res.end();
 });
 
 
