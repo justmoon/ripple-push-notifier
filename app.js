@@ -104,7 +104,7 @@ app.get('/key/:key', function(req, res){
 });
 
 app.post('/subscriptions/create', function(req, res) {
-  if ("string" === typeof req.body.ripple_address) {
+  if ("string" !== typeof req.body.ripple_address) {
     throw new Error("No ripple_address provided!");
   }
   var ripple_address = ripple.UInt160.from_json(req.body.ripple_address.trim());
@@ -112,7 +112,7 @@ app.post('/subscriptions/create', function(req, res) {
     throw new Error("Invalid ripple_address!");
   }
   ripple_address = ripple_address.to_json();
-  if ("string" === typeof req.body.pushover_key) {
+  if ("string" !== typeof req.body.pushover_key) {
     throw new Error("No pushover_key provided!");
   }
   var pushover_key = req.body.pushover_key;
@@ -134,7 +134,7 @@ app.post('/subscriptions/create', function(req, res) {
 });
 
 app.post('/subscriptions/delete', function(req, res) {
-  if ("string" === typeof req.body.ripple_address) {
+  if ("string" !== typeof req.body.ripple_address) {
     throw new Error("No ripple_address provided!");
   }
   var ripple_address = ripple.UInt160.from_json(req.body.ripple_address.trim());
@@ -142,7 +142,7 @@ app.post('/subscriptions/delete', function(req, res) {
     throw new Error("Invalid ripple_address!");
   }
   ripple_address = ripple_address.to_json();
-  if ("string" === typeof req.body.pushover_key) {
+  if ("string" !== typeof req.body.pushover_key) {
     throw new Error("No pushover_key provided!");
   }
   var pushover_key = req.body.pushover_key;
