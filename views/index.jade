@@ -25,6 +25,11 @@ block content
     .panel-heading
       .panel-title Get started
     .panel-body
+      if key_error
+        .alert.alert-danger
+          strong Error
+          | &ensp;
+          span= key_error
       form#settings_form(role="form")
         .form-group
           label(for="pushover_key_input") Pushover user key
