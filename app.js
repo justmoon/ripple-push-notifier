@@ -68,7 +68,7 @@ app.get('/key/:key', function(req, res){
   }}, function (err, response, body) {
     if (!err) {
       if (response.statusCode === 200 && JSON.parse(body).status === 1) {
-        db.all('SELECT ripple_address AS address FROM subscriptions' +
+        db.all('SELECT ripple_address AS address FROM subscriptions ' +
                'WHERE `type` = "pushover" AND key = ?',
                req.params.key,
                function (err, rows) {
