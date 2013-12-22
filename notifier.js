@@ -1,6 +1,11 @@
 var ripple = require('ripple-lib'),
     config = require('./config.json'),
-    pushover = require('pushover.net');
+    pushover = require('pushover.net'),
+    apn = require('apn');
+
+// Set up connection to Apple APNS
+var apnOptions = { "gateway": "gateway.sandbox.push.apple.com" };
+var apnConnection = new apn.Connection(apnOptions);
 
 var Notifier = function () {
   this.remote = new ripple.Remote({
@@ -35,18 +40,18 @@ Notifier.prototype.handleTransaction = function (msg) {
   });
 };
 
-Notifier.prototype.subscribe = function (address, key) {
+Notifier.prototype.subscribe = function (address, key, type) {
   if (!this.subscriptions[address]) {
     this.subscriptions[address] = {};
   }
 
-  this.subscriptions[address][key] = true;
+  this.subscriptions[address][type+":"+key] = true;
 };
 
-Notifier.prototype.unsubscribe = function (address, key) {
+Notifier.prototype.unsubscribe = function (address, key, type) {
   if (!this.subscriptions[address]) return;
 
-  delete this.subscriptions[address][key];
+  delete this.subscriptions[address][type+":"+key];
 };
 
 Notifier.prototype.notifyTransaction = function (key, address, msg) {
@@ -63,16 +68,14 @@ Notifier.prototype.notifyTransaction = function (key, address, msg) {
     amount = ripple.Amount.from_json(msg.transaction.Amount);
     item = {
       "title": "Incoming payment",
-      "message": "You received "+amount.to_human()+" "+amount.currency().to_json(),
-      "sound": "cashregister"
+      "message": "You received "+amount.to_human()+" "+amount.currency().to_json()
     };
   } else if (msg.transaction.TransactionType === 'Payment' &&
              msg.transaction.Account === address) {
     amount = ripple.Amount.from_json(msg.transaction.Amount);
     item = {
       "title": "Outgoing payment",
-      "message": "You sent "+amount.to_human()+" "+amount.currency().to_json(),
-      "sound": "cashregister"
+      "message": "You sent "+amount.to_human()+" "+amount.currency().to_json()
     };
   }
 
@@ -83,17 +86,39 @@ Notifier.prototype.notifyTransaction = function (key, address, msg) {
 };
 
 Notifier.prototype.notifyTimelineItem = function (key, item) {
-  item.token = config.PUSHOVER_TOKEN;
-  item.user = key;
+  var temp = key.split(":");
+  var type = temp[0];
+  key = temp.slice(1).join(":");
 
-  console.log(item);
-  pushover(item, function(err, ok) {
-    if (err) {
-      console.error(err);
-    } else {
-      console.log("Pushed message to "+key);
-    }
-  });
+  switch (type) {
+  case 'pushover':
+    item.token = config.PUSHOVER_TOKEN;
+    item.user = key;
+    item.sound = "cashregister";
+
+    console.log(item);
+    pushover(item, function(err, ok) {
+      if (err) {
+        console.error(err);
+      } else {
+        console.log("Pushed message to "+key);
+      }
+    });
+    break;
+  case 'apn':
+    var apnDevice = new apn.Device(key);
+    var apnNote = new apn.Notification();
+    apnNote.expiry = Math.floor(Date.now() / 1000) + 3600; // Expires 1 hour from now.
+    apnNote.badge = 3;
+    apnNote.sound = "ping.aiff";
+    apnNote.alert = "\uD83D\uDCE7 \u2709 "+item.message;
+    apnNote.payload = {'messageFrom': 'Caroline'};
+
+    apnConnection.pushNotification(apnNote, apnDevice);
+    break;
+  default:
+    console.error('Unknown subscription type "'+type+'"');
+  }
 };
 
 exports.Notifier = Notifier;

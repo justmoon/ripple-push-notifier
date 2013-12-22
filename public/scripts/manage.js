@@ -4,7 +4,7 @@ $('#create_form').submit(function (e) {
   var ripple_address = $('#ripple_address_input').val();
   var pushover_key = $('#pushover_key_input').val();
 
-  $.post('/subscriptions/create', {
+  $.post('/subscriptions/pushover/create', {
     ripple_address: ripple_address,
     pushover_key: pushover_key
   }, function () {
@@ -18,7 +18,7 @@ $('a.unsubscribe').click(function (e) {
   var ripple_address = $(this).data('ripple-address');
   var pushover_key = $('#pushover_key_input').val();
 
-  $.post('/subscriptions/delete', {
+  $.post('/subscriptions/pushover/delete', {
     ripple_address: ripple_address,
     pushover_key: pushover_key
   }, function () {

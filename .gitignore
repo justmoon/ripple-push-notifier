@@ -3,3 +3,5 @@ node_modules
 config.json
 node.pid
 data.db
+cert.pem
+key.pem

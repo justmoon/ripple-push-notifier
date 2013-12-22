@@ -28,19 +28,19 @@ app.use(express.static(path.join(__dirname, 'public')));
 var db = new sqlite.Database(path.resolve(__dirname, 'data.db'));
 db.serialize();
 
-db.run("CREATE TABLE IF NOT EXISTS subscriptions (pushover_key TEXT, ripple_address TEXT)");
+db.run("CREATE TABLE IF NOT EXISTS subscriptions (type TEXT, key TEXT, ripple_address TEXT)");
 
 var notifier = new Notifier();
 
-db.each("SELECT pushover_key AS key, ripple_address AS address FROM subscriptions", function(err, row) {
+db.each("SELECT type, key, ripple_address AS address FROM subscriptions", function(err, row) {
   if (err) {
     failure(err);
     return;
   }
 
   if (row.address) {
-    console.log("Resubscribing "+row.address+" => "+row.key);
-    notifier.subscribe(row.address, row.key);
+    console.log("Resubscribing "+row.address+" => "+row.type+":"+row.key);
+    notifier.subscribe(row.address, row.key, row.type);
   }
 });
 
@@ -68,7 +68,8 @@ app.get('/key/:key', function(req, res){
   }}, function (err, response, body) {
     if (!err) {
       if (response.statusCode === 200 && JSON.parse(body).status === 1) {
-        db.all('SELECT ripple_address AS address FROM subscriptions WHERE pushover_key = ?',
+        db.all('SELECT ripple_address AS address FROM subscriptions' +
+               'WHERE `type` = "pushover" AND key = ?',
                req.params.key,
                function (err, rows) {
                  if (err) {
@@ -109,7 +110,7 @@ app.get('/key/:key', function(req, res){
   });
 });
 
-app.post('/subscriptions/create', function(req, res) {
+app.post('/subscriptions/pushover/create', function(req, res) {
   if ("string" !== typeof req.body.ripple_address) {
     throw new Error("No ripple_address provided!");
   }
@@ -123,14 +124,14 @@ app.post('/subscriptions/create', function(req, res) {
   }
   var pushover_key = req.body.pushover_key;
 
-  db.get('SELECT pushover_key, ripple_address AS address FROM subscriptions'
-         + ' WHERE pushover_key = ? AND ripple_address = ?',
+  db.get('SELECT key, ripple_address AS address FROM subscriptions'
+         + ' WHERE type = "pushover" AND key = ? AND ripple_address = ?',
          pushover_key, ripple_address,
          function (err, row) {
            if (!row) {
-             notifier.subscribe(ripple_address, pushover_key);
-             db.run("INSERT INTO subscriptions (ripple_address, pushover_key)"
-                    + " VALUES (?, ?)",
+             notifier.subscribe(ripple_address, pushover_key, "pushover");
+             db.run('INSERT INTO subscriptions (type, ripple_address, key)'
+                    + ' VALUES ("pushover", ?, ?)',
                     ripple_address, pushover_key);
              res.json({success: true});
            } else {
@@ -139,7 +140,7 @@ app.post('/subscriptions/create', function(req, res) {
          });
 });
 
-app.post('/subscriptions/delete', function(req, res) {
+app.post('/subscriptions/pushover/delete', function(req, res) {
   if ("string" !== typeof req.body.ripple_address) {
     throw new Error("No ripple_address provided!");
   }
@@ -153,13 +154,71 @@ app.post('/subscriptions/delete', function(req, res) {
   }
   var pushover_key = req.body.pushover_key;
 
-  db.get('DELETE FROM subscriptions WHERE pushover_key = ? AND ripple_address = ?',
+  db.get('DELETE FROM subscriptions WHERE type = "pushover" AND ' +
+         'key = ? AND ripple_address = ?',
          pushover_key, ripple_address,
          function (err, row) {
            if (err) {
              res.send(500, {error: "Error"});
            } else {
-             notifier.unsubscribe(ripple_address, pushover_key);
+             notifier.unsubscribe(ripple_address, pushover_key, "pushover");
+             res.json({success: true});
+           }
+         });
+});
+
+app.post('/subscriptions/apn/create', function(req, res) {
+  if ("string" !== typeof req.body.ripple_address) {
+    throw new Error("No ripple_address provided!");
+  }
+  var ripple_address = ripple.UInt160.from_json(req.body.ripple_address.trim());
+  if (!ripple_address.is_valid()) {
+    throw new Error("Invalid ripple_address!");
+  }
+  ripple_address = ripple_address.to_json();
+  if ("string" !== typeof req.body.udid) {
+    throw new Error("No UDID provided!");
+  }
+  var udid = req.body.udid;
+
+  db.get('SELECT key, ripple_address AS address FROM subscriptions'
+         + ' WHERE type = "apn" AND key = ? AND ripple_address = ?',
+         udid, ripple_address,
+         function (err, row) {
+           if (!row) {
+             notifier.subscribe(ripple_address, udid, "apn");
+             db.run('INSERT INTO subscriptions (type, ripple_address, key)'
+                    + ' VALUES ("apn", ?, ?)',
+                    ripple_address, udid);
+             res.json({success: true});
+           } else {
+             res.send(500, {error: "Subscription already exists"});
+           }
+         });
+});
+
+app.post('/subscriptions/apn/delete', function(req, res) {
+  if ("string" !== typeof req.body.ripple_address) {
+    throw new Error("No ripple_address provided!");
+  }
+  var ripple_address = ripple.UInt160.from_json(req.body.ripple_address.trim());
+  if (!ripple_address.is_valid()) {
+    throw new Error("Invalid ripple_address!");
+  }
+  ripple_address = ripple_address.to_json();
+  if ("string" !== typeof req.body.udid) {
+    throw new Error("No UDID provided!");
+  }
+  var udid = req.body.udid;
+
+  db.get('DELETE FROM subscriptions WHERE type = "apn" AND ' +
+         'key = ? AND ripple_address = ?',
+         udid, ripple_address,
+         function (err, row) {
+           if (err) {
+             res.send(500, {error: "Error"});
+           } else {
+             notifier.unsubscribe(ripple_address, udid, "apn");
              res.json({success: true});
            }
          });

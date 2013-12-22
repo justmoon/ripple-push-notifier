@@ -11,6 +11,7 @@
     "sqlite3": "~2.1.19",
     "ripple-lib": "~0.7.29",
     "pushover.net": "0.0.6",
-    "request": "~2.30.0"
+    "request": "~2.30.0",
+    "apn": "~1.4.3"
   }
 }
