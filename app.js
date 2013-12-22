@@ -91,7 +91,7 @@ app.get('/key/:key', function(req, res){
       } else if (response.statusCode === 400) {
         res.render('index', {
           title: 'Ripple Notifier',
-          key_error: JSON.parse(body).errors[0] || 'This is not a valid Pushove
+          key_error: JSON.parse(body).errors[0] || 'This is not a valid Pushover user key'
         });
         res.end();
       } else {
