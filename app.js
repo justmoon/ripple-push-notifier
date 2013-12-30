@@ -181,15 +181,17 @@ app.post('/subscriptions/apn/create', function(req, res) {
   }
   var udid = req.body.udid;
 
+  var endpoint = req.query.sandbox ? "apnd" : "apn";
+
   db.get('SELECT key, ripple_address AS address FROM subscriptions'
-         + ' WHERE type = "apn" AND key = ? AND ripple_address = ?',
-         udid, ripple_address,
+         + ' WHERE type = ? AND key = ? AND ripple_address = ?',
+         endpoint, udid, ripple_address,
          function (err, row) {
            if (!row) {
-             notifier.subscribe(ripple_address, udid, "apn");
+             notifier.subscribe(ripple_address, udid, endpoint);
              db.run('INSERT INTO subscriptions (type, ripple_address, key)'
-                    + ' VALUES ("apn", ?, ?)',
-                    ripple_address, udid);
+                    + ' VALUES (?, ?, ?)',
+                    endpoint, ripple_address, udid);
              res.json({success: true});
            } else {
              res.send(500, {error: "Subscription already exists"});
@@ -211,14 +213,16 @@ app.post('/subscriptions/apn/delete', function(req, res) {
   }
   var udid = req.body.udid;
 
-  db.get('DELETE FROM subscriptions WHERE type = "apn" AND ' +
+  var endpoint = req.query.sandbox ? "apnd" : "apn";
+
+  db.get('DELETE FROM subscriptions WHERE type = ? AND ' +
          'key = ? AND ripple_address = ?',
-         udid, ripple_address,
+         endpoint, udid, ripple_address,
          function (err, row) {
            if (err) {
              res.send(500, {error: "Error"});
            } else {
-             notifier.unsubscribe(ripple_address, udid, "apn");
+             notifier.unsubscribe(ripple_address, udid, endpoint);
              res.json({success: true});
            }
          });
