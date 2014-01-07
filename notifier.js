@@ -111,7 +111,7 @@ Notifier.prototype.notifyTimelineItem = function (key, item) {
       url: "https://ripple.com/graph/#"+item.hash
     };
 
-    pushover(item, function(err, ok) {
+    pushover(pushMessage, function(err, ok) {
       if (err) {
         console.error(err);
       } else {
