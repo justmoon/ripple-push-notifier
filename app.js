@@ -217,6 +217,11 @@ app.post('/subscriptions/apn/delete', function(req, res) {
     throw new Error("No UDID provided!");
   }
   var udid = req.body.udid;
+  udid = udid.replace(/\s/g, '').replace(/^<|>$/g, '');
+
+  if (!/^[a-f0-9]{64}$/i.exec(udid)) {
+    throw new Error("Invalid UDID, should be 64 characters hex!");
+  }
 
   var endpoint = req.query.sandbox ? "apnd" : "apn";
 
