@@ -74,7 +74,7 @@ app.get('/key/:key', function(req, res){
                function (err, rows) {
                  if (err) {
                    console.error(err);
-                   res.send(500, "Error from database");
+                   res.send(200, "Error from database");
                    return;
                  }
 
@@ -105,7 +105,7 @@ app.get('/key/:key', function(req, res){
     } else {
       // XXX Error
       console.error(err);
-      res.send(500, "No response from Pushover");
+      res.send(200, "No response from Pushover");
     }
   });
 });
@@ -135,7 +135,7 @@ app.post('/subscriptions/pushover/create', function(req, res) {
                     ripple_address, pushover_key);
              res.json({success: true});
            } else {
-             res.send(500, {error: "Subscription already exists"});
+             res.send(200, {error: "Subscription already exists"});
            }
          });
 });
@@ -159,7 +159,7 @@ app.post('/subscriptions/pushover/delete', function(req, res) {
          pushover_key, ripple_address,
          function (err, row) {
            if (err) {
-             res.send(500, {error: "Error"});
+             res.send(200, {error: "Error"});
            } else {
              notifier.unsubscribe(ripple_address, pushover_key, "pushover");
              res.json({success: true});
@@ -194,7 +194,7 @@ app.post('/subscriptions/apn/create', function(req, res) {
                     endpoint, ripple_address, udid);
              res.json({success: true});
            } else {
-             res.send(500, {error: "Subscription already exists"});
+             res.send(200, {error: "Subscription already exists"});
            }
          });
 });
@@ -220,7 +220,7 @@ app.post('/subscriptions/apn/delete', function(req, res) {
          endpoint, udid, ripple_address,
          function (err, row) {
            if (err) {
-             res.send(500, {error: "Error"});
+             res.send(200, {error: "Error"});
            } else {
              notifier.unsubscribe(ripple_address, udid, endpoint);
              res.json({success: true});
