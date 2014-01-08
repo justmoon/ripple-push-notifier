@@ -136,7 +136,7 @@ Notifier.prototype.notifyTimelineItem = function (key, item) {
     apnNote.badge = 0;
     apnNote.sound = "default";
     apnNote.alert = emoji+item.message;
-    apnNote.payload = item.hash;
+    //apnNote.payload = item.hash;
 
     var apnConnection = (type === "apn") ? apnConnectionLive : apnConnectionSandbox;
     apnConnection.pushNotification(apnNote, apnDevice);
